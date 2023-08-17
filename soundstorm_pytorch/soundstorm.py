@@ -582,12 +582,14 @@ class SoundStorm(nn.Module):
         soundstream: Optional[SoundStream] = None,
         spear_tts_text_to_semantic: Optional[TextToSemantic] = None,
         wav2vec: Optional[Union[HubertWithKmeans, FairseqVQWav2Vec]] = None,
+        continuous_conditioning: bool = True, # if true, we condition on continuous input vector
+        continuous_conditioning_dim: int = None,
         steps = 18,
         self_cond = False,
         self_cond_train_prob = 0.75,
         no_replace_prob = 0.15,          # which percentage of the tokens masked will stay the same, done in original MLM paper
         random_token_prob = 0.1,         # which percentage of tokens to be replaced with random token, done in original MLM paper
-        schedule = 'linear',
+        schedule = 'cosine',
         can_mask_prev_unmasked = False,  # when unmasking, whether it can remask previously unmasked        
         self_token_critic = False,       # https://aclanthology.org/2021.naacl-main.409/
         critic_loss_weight = 1.,
@@ -653,6 +655,8 @@ class SoundStorm(nn.Module):
 
         # in the case that text-to-semantic module passed in
 
+        assert (not self.should_condition) or (not continuous_conditioning) # one has to be false at least
+
         if self.should_condition:
             assert exists(self.codec_target_sample_hz) and exists(self.codec_downsample_factor)
 
@@ -667,6 +671,11 @@ class SoundStorm(nn.Module):
                 self.num_semantic_token_ids = num_semantic_token_ids
                 self.semantic_cond_to_model_dim = nn.Identity()
                 self.semantic_pad_id = semantic_pad_id
+
+        # continuous conditioning
+        self.continuous_conditioning = continuous_conditioning
+        if continuous_conditioning:
+            self.cond_to_model_dim = nn.Linear(continuous_conditioning_dim, dim)
 
         # detect token critic settings
 
@@ -724,6 +733,7 @@ class SoundStorm(nn.Module):
         num_latents = None,
         *,
         texts: Optional[Union[List[str], Tensor]] = None,
+        continuous_conditioning_vecs = None,
         cond_semantic_token_ids = None,
         seconds = None,
         batch_size = None,
@@ -753,7 +763,10 @@ class SoundStorm(nn.Module):
 
        # maybe condition
 
-        cond_tokens = self.maybe_get_condition(cond_semantic_token_ids)
+        if continuous_conditioning_vecs is not None and self.continuous_conditioning:
+            cond_tokens = self.cond_to_model_dim(continuous_conditioning_vecs)
+        else:
+            cond_tokens = self.maybe_get_condition(cond_semantic_token_ids)
 
         # determine batch size and sequence length, which depends whether it is conditioning
 
@@ -913,6 +926,7 @@ class SoundStorm(nn.Module):
         x,
         *,
         cond_semantic_token_ids = None,
+        continuous_conditioning_vecs = None,
         only_train_generator = False,
         only_train_critic = False,
         generator_sample_temperature = None,
@@ -943,8 +957,10 @@ class SoundStorm(nn.Module):
         b, n, gq, device = *x.shape, x.device
 
         # maybe condition
-
-        cond_tokens = self.maybe_get_condition(cond_semantic_token_ids, length = x.shape[-2])
+        if continuous_conditioning_vecs is not None and self.continuous_conditioning:
+            cond_tokens = self.cond_to_model_dim(continuous_conditioning_vecs)
+        else:
+            cond_tokens = self.maybe_get_condition(cond_semantic_token_ids, length = x.shape[-2])
 
         # prepare masking
 
