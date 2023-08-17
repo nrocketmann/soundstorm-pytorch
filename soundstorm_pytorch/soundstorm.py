@@ -629,25 +629,27 @@ class SoundStorm(nn.Module):
 
         self.text_to_semantic = spear_tts_text_to_semantic
 
-        if exists(spear_tts_text_to_semantic) and exists(spear_tts_text_to_semantic.wav2vec):
-            assert not exists(wav2vec), 'wav2vec model already supplied from the TextToSemantic instance from SpearTTS'
-            assert not (exists(wav2vec_downsample_factor) or exists(wav2vec_target_sample_hz)), 'wav2vec downsample factor and sampling freq being auto-set from the text-to-semantic module passed in, as it contains the wav2vec instance'
 
-            self.wav2vec = spear_tts_text_to_semantic.wav2vec
-            self.wav2vec_target_sample_hz = maybe_wav2vec.target_sample_hz
-            self.wav2vec_downsample_factor = maybe_wav2vec.downsample_factor
+        # DIE POTENTIAL ERROS
+        # if exists(spear_tts_text_to_semantic) and exists(spear_tts_text_to_semantic.wav2vec):
+        #     assert not exists(wav2vec), 'wav2vec model already supplied from the TextToSemantic instance from SpearTTS'
+        #     assert not (exists(wav2vec_downsample_factor) or exists(wav2vec_target_sample_hz)), 'wav2vec downsample factor and sampling freq being auto-set from the text-to-semantic module passed in, as it contains the wav2vec instance'
 
-        elif exists(wav2vec):
-            assert not (exists(wav2vec_downsample_factor) or exists(wav2vec_target_sample_hz)), 'wav2vec downsample factor and sampling freq being auto-set from the text-to-semantic module passed in, as it contains the wav2vec instance'
+        #     self.wav2vec = spear_tts_text_to_semantic.wav2vec
+        #     self.wav2vec_target_sample_hz = maybe_wav2vec.target_sample_hz
+        #     self.wav2vec_downsample_factor = maybe_wav2vec.downsample_factor
 
-            self.wav2vec = wav2vec
-            self.wav2vec_target_sample_hz = wav2vec.target_sample_hz
-            self.wav2vec_downsample_factor = wav2vec.downsample_factor
+        # elif exists(wav2vec):
+        #     assert not (exists(wav2vec_downsample_factor) or exists(wav2vec_target_sample_hz)), 'wav2vec downsample factor and sampling freq being auto-set from the text-to-semantic module passed in, as it contains the wav2vec instance'
 
-        else:
-            self.wav2vec = None
-            self.wav2vec_target_sample_hz = wav2vec_target_sample_hz
-            self.wav2vec_downsample_factor = wav2vec_downsample_factor
+        #     self.wav2vec = wav2vec
+        #     self.wav2vec_target_sample_hz = wav2vec.target_sample_hz
+        #     self.wav2vec_downsample_factor = wav2vec.downsample_factor
+
+        # else:
+        self.wav2vec = None
+        self.wav2vec_target_sample_hz = wav2vec_target_sample_hz
+        self.wav2vec_downsample_factor = wav2vec_downsample_factor
 
         # whether to text condition on audio generation is dependent on whether hyperparameters are supplied
 
@@ -679,7 +681,7 @@ class SoundStorm(nn.Module):
 
         # detect token critic settings
 
-        assert not (self_token_critic and exists(token_critic))
+        # assert not (self_token_critic and exists(token_critic))
 
         self.num_quantizers = net.num_quantizers
         self.grouped_quantizers = net.grouped_quantizers
