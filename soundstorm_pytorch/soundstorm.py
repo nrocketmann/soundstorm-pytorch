@@ -968,7 +968,7 @@ class SoundStorm(nn.Module):
 
         orig_seq = rearrange(x.clone(), 'b n q -> b (n q)')
 
-        t = torch.randint(0, n, (1,)).item()
+        t = torch.randint(0, n-1, (1,)).item()
         q = torch.randint(0, gq, (1,)).item()
 
         rand_times = torch.empty(b, device = device).uniform_(0, 1)
@@ -1034,10 +1034,21 @@ class SoundStorm(nn.Module):
 
         # cross entropy loss
 
-        loss = F.cross_entropy(
-            logits[mask],
-            orig_seq[mask]
-        )
+        masked_logits = logits[mask]
+        if masked_logits.shape[0]==0:
+            import pdb
+            pdb.set_trace()
+        else:
+
+            loss = F.cross_entropy(
+                logits[mask],
+                orig_seq[mask]
+            )
+
+        # if torch.isnan(loss):
+        #     print(logits[mask].shape)
+        #     print(logits[mask])
+        #     raise RuntimeError("NaN loss!")
 
         if not exists(self.token_critic) or only_train_generator:
             return loss, LossBreakdown(loss, None)
